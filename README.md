@@ -1,204 +1,66 @@
-# ContentEngine — Multi-Modal AI Content Marketing Engine
+# ContentEngine — Professional AI Marketing Studio
 
-Generate **blog posts, tweets, SEO metadata, and promotional images** from a single campaign brief — all in parallel using a Celery + Redis task queue powered by [OpenRouter](https://openrouter.ai).
-
----
-
-## Architecture
-
-```
-User (React) ──POST /generate──► FastAPI ──delay()──► Celery Worker
-                                                          │
-                                              ┌───────────┴──────────────┐
-                                              │  generate_campaign_text  │  ← OpenRouter (GPT-4o / Claude)
-                                              │  + ThreadPoolExecutor    │
-                                              │    generate_image ×2     │  ← OpenRouter (flux-schnell)
-                                              └───────────┬──────────────┘
-                                                          │
-User (React) ──GET /status/:id──────────────────────────►│ Redis result backend
-```
-
-- **Text AI** — OpenRouter's OpenAI-compatible API, using the `openai` Python SDK pointed at `https://openrouter.ai/api/v1`  
-- **Image AI** — OpenRouter's REST `/images/generations` endpoint (direct `requests` call)  
-- **Task Queue** — Celery with Redis as both broker and result backend  
-- **Frontend** — React (Vite) polls `/status/{task_id}` every 2 seconds until `complete` or `failed`
+Generate **premium blog posts, tweets, SEO metadata, and 8k Flux images** from a single campaign brief. Powered by a high-performance backend (FastAPI, Celery, Redis) and a dynamic frontend (React, Puter.js).
 
 ---
 
-## Setup
+## 🚀 Key Features
 
-### 1. Get an OpenRouter API key
-
-Free key at: **https://openrouter.ai/keys**
-
-### 2. Configure environment variables
-
-```bash
-cd project3-content-engine/backend
-cp .env.example .env
-# Edit .env and set your OPENROUTER_API_KEY
-```
-
-`.env` contents:
-```
-OPENROUTER_API_KEY=sk-or-...your-key-here...
-OPENROUTER_BASE_URL=https://openrouter.ai/api/v1
-TEXT_MODEL=openai/gpt-4o
-IMAGE_MODEL=black-forest-labs/flux-schnell
-REDIS_URL=redis://localhost:6379/0
-YOUR_SITE_URL=http://localhost:5173
-YOUR_SITE_NAME=ContentEngine
-```
-
-### 3. Install Redis
-
-| Platform | Command |
-|----------|---------|
-| macOS | `brew install redis && brew services start redis` |
-| Ubuntu/Debian | `sudo apt install redis-server && sudo systemctl start redis` |
-| Windows | Use [Redis for Windows](https://github.com/microsoftarchive/redis/releases) or WSL |
-
-### 4. Install Python dependencies
-
-```bash
-cd project3-content-engine/backend
-pip install -r requirements.txt
-```
+- **Dual AI Pipeline** — Uses **OpenRouter** for advanced text generation and **Puter.js** for high-fidelity **Flux.1 Schnell** image generation.
+- **Self-Healing JSON** — Robust backend parsing that automatically repairs AI formatting errors.
+- **Browser Automation** — Integrated **Playwright** for "One-Click" publishing to LinkedIn and Twitter.
+- **Premium Dashboard** — Professional dark mode UI with real-time Markdown rendering and Model Comparison tools.
+- **Real-Time Progress** — Async task queue (Celery + Redis) with step-by-step progress tracking.
 
 ---
 
-## Running the Project
+## 🛠 Tech Stack
 
-Open **4 terminals**:
-
-**Terminal 1 — Redis**
-```bash
-redis-server
-```
-
-**Terminal 2 — Celery Worker**
-```bash
-cd project3-content-engine/backend
-celery -A tasks.campaign_tasks worker --loglevel=info
-```
-
-**Terminal 3 — FastAPI Backend**
-```bash
-cd project3-content-engine/backend
-uvicorn main:app --reload --port 8000
-```
-
-**Terminal 4 — React Frontend**
-```bash
-cd project3-content-engine/frontend
-npm install
-npm run dev
-```
-
-Then open **http://localhost:5173** in your browser.
+- **Frontend**: React (Vite), Puter.js, Tailwind-inspired Vanilla CSS.
+- **Backend**: FastAPI, Celery, Redis.
+- **AI Models**: 
+    - Text: `google/gemini-2.0-flash-lite:free` (via OpenRouter)
+    - Image: `Flux.1 Schnell` (via Puter.js)
+- **Automation**: Playwright (Headed automation).
 
 ---
 
-## API Reference
+## 📖 Documentation Index
 
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| `GET` | `/health` | Liveness probe |
-| `POST` | `/generate` | Enqueue campaign task → returns `task_id` |
-| `GET` | `/status/{task_id}` | Poll task status and result |
-
-### POST `/generate` body
-```json
-{
-  "user_brief": "Launch campaign for sustainable bamboo water bottles targeting eco-conscious millennials",
-  "text_model": "openai/gpt-4o"
-}
-```
-
-### GET `/status/{task_id}` responses
-```json
-// Pending
-{ "status": "pending" }
-
-// Processing
-{ "status": "processing", "step": "Generating campaign copy..." }
-
-// Complete
-{ "status": "complete", "data": { ... full campaign object ... } }
-
-// Failed
-{ "status": "failed", "error": "..." }
-```
+- [**Architecture Guide**](ARCHITECTURE.md) — Deep dive into the system design.
+- [**Setup & Installation**](SETUP.md) — How to run the project locally.
+- [**Campaign Flow**](FLOW.md) — Step-by-step logic of the generation pipeline.
 
 ---
 
-## Campaign Output Schema
+## ⚡ Quick Start
 
-```json
-{
-  "campaign_title": "...",
-  "target_audience": "...",
-  "brand_voice": "...",
-  "blog_post": {
-    "title": "...",
-    "meta_description": "...",
-    "body": "...",
-    "cta": "..."
-  },
-  "tweets": [
-    { "variant": 1, "text": "...", "hashtags": ["..."] },
-    { "variant": 2, "text": "...", "hashtags": ["..."] },
-    { "variant": 3, "text": "...", "hashtags": ["..."] }
-  ],
-  "seo": {
-    "primary_keyword": "...",
-    "secondary_keywords": ["...", "...", "..."],
-    "meta_title": "..."
-  },
-  "image_url_1": "https://...",
-  "image_url_2": "https://..."
-}
-```
+1. **Install Redis** and ensure it's running.
+2. **Setup Backend**:
+   ```bash
+   cd backend
+   pip install -r requirements.txt
+   playwright install
+   ```
+3. **Setup Frontend**:
+   ```bash
+   cd frontend
+   npm install
+   npm run dev
+   ```
+4. **Start Worker**:
+   ```bash
+   celery -A tasks.campaign_tasks worker --loglevel=info
+   ```
 
 ---
 
-## Security Notes
+## 🤝 Contact & Consultation
 
-- ✅ All secrets stored in `.env` — never hardcoded  
-- ✅ `.env` added to `.gitignore`  
-- ✅ `HTTP-Referer` and `X-Title` headers sent on every OpenRouter request  
-- ✅ Image generation falls back to a placeholder URL on failure — pipeline never breaks  
-
----
-
-## Project Structure
-
-```
-project3-content-engine/
-├── backend/
-│   ├── main.py                    # FastAPI app + endpoints
-│   ├── tasks/
-│   │   └── campaign_tasks.py      # Celery task with parallel image generation
-│   ├── services/
-│   │   ├── ai_service.py          # OpenRouter text generation (openai SDK)
-│   │   └── image_service.py       # OpenRouter image generation (requests)
-│   ├── models/
-│   │   └── schemas.py             # Pydantic request/response models
-│   ├── requirements.txt
-│   ├── .env.example
-│   └── .gitignore
-├── frontend/
-│   └── src/
-│       ├── App.jsx                # Root component + polling logic
-│       ├── api.js                 # Axios API client
-│       └── components/
-│           ├── InputSection.jsx
-│           ├── LoadingState.jsx
-│           ├── ErrorState.jsx
-│           └── ResultsDashboard.jsx
-└── README.md
-```
+Interested in scaling your AI operations?
+- **Email**: [himashree966@gmail.com](mailto:himashree966@gmail.com)
+- **Phone**: [+91 70229 89390](tel:+917022989390)
 
 ---
 
-*Built for the 4-week GenAI Internship — Week 3 Project.*
+*Built as a production-grade demonstration for the GenAI Internship.*

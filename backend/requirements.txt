@@ -5,4 +5,6 @@ redis
 openai
 python-dotenv
 requests
+playwright
+httpx
 

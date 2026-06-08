@@ -1,59 +1,27 @@
 """
-Image Generation Service — powered by OpenRouter REST API.
-Uses black-forest-labs/flux-schnell via direct HTTP (not OpenAI SDK).
+Image Service — Streamlined version (Classifier removed).
+Provides raw prompts for the frontend Puter.js integration.
 """
 import os
-import requests
+import uuid
+import threading
 from dotenv import load_dotenv
 
 load_dotenv()
 
-OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY")
-OPENROUTER_BASE_URL = os.getenv("OPENROUTER_BASE_URL", "https://openrouter.ai/api/v1")
-IMAGE_MODEL = os.getenv("IMAGE_MODEL", "black-forest-labs/flux-schnell")
-YOUR_SITE_URL = os.getenv("YOUR_SITE_URL", "http://localhost:5173")
-YOUR_SITE_NAME = os.getenv("YOUR_SITE_NAME", "ContentEngine")
+# Configuration
+IMAGE_DIR = os.path.join(os.path.dirname(__file__), "..", "static", "images")
+os.makedirs(IMAGE_DIR, exist_ok=True)
 
-PLACEHOLDER_URL = "https://placehold.co/1024x1024?text=Image+Unavailable"
-
+# Sequential generation lock (still useful to prevent backend overload)
+generation_lock = threading.Lock()
 
 def generate_image(prompt: str) -> str:
     """
-    Generate an image via OpenRouter's images/generations endpoint.
-    Falls back to a placeholder URL if generation fails.
-
-    Args:
-        prompt: Detailed text description for the image.
-
-    Returns:
-        Image URL string (real or placeholder).
+    Returns a local URL placeholder. 
+    The frontend (Puter.js) will handle the actual generation.
     """
-    try:
-        headers = {
-            "Authorization": f"Bearer {OPENROUTER_API_KEY}",
-            "HTTP-Referer": YOUR_SITE_URL,
-            "X-Title": YOUR_SITE_NAME,
-            "Content-Type": "application/json",
-        }
-        payload = {
-            "model": IMAGE_MODEL,
-            "prompt": prompt,
-            "n": 1,
-            "size": "1024x1024",
-        }
-
-        response = requests.post(
-            f"{OPENROUTER_BASE_URL}/images/generations",
-            headers=headers,
-            json=payload,
-            timeout=120,
-        )
-        response.raise_for_status()
-
-        data = response.json()
-        image_url = data["data"][0]["url"]
-        return image_url
-
-    except Exception as exc:
-        print(f"[image_service] Image generation failed: {exc}")
-        return PLACEHOLDER_URL
+    # In this streamlined version, we simply provide the local path structure
+    # the frontend will use Puter.js to generate the actual visual content.
+    filename = f"{uuid.uuid4()}.jpg"
+    return f"http://localhost:8000/static/images/{filename}"

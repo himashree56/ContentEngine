@@ -10,60 +10,50 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # ---------------------------------------------------------------------------
-# Celery application — broker and result backend both use Redis
+# Deferred imports
 # ---------------------------------------------------------------------------
-app = Celery(
-    "tasks",
-    broker=os.getenv("REDIS_URL", "redis://localhost:6379/0"),
-    backend=os.getenv("REDIS_URL", "redis://localhost:6379/0"),
-)
+from services.ai_service import generate_campaign_text
+from services.image_service import generate_image
 
-# Ensure results are JSON-serialisable
-app.conf.update(
-    task_serializer="json",
-    result_serializer="json",
-    accept_content=["json"],
-    timezone="UTC",
-    enable_utc=True,
-)
+# Simple in-memory store for task states since Celery is hanging on Windows
+task_status_store = {}
 
-# ---------------------------------------------------------------------------
-# Deferred imports to avoid circular issues when Celery discovers tasks
-# ---------------------------------------------------------------------------
-from services.ai_service import generate_campaign_text       # noqa: E402
-from services.image_service import generate_image            # noqa: E402
+def update_task_state(task_id: str, state: str, meta: dict = None, result=None):
+    task_status_store[task_id] = {
+        "state": state,
+        "info": meta or {},
+        "result": result
+    }
 
-
-@app.task(bind=True, name="tasks.generate_campaign")
-def generate_campaign(self, user_brief: str, model_override: str = None):
+def generate_campaign(task_id: str, user_brief: str, model_override: str = None):
     """
-    Full campaign generation pipeline:
+    Full campaign generation pipeline executed via FastAPI BackgroundTasks:
       1. Generate text copy (blog, tweets, SEO, image prompts)
-      2. Generate both promo images in parallel via ThreadPoolExecutor
-      3. Return the complete campaign dict as the task result.
+      2. Generate both promo images
+      3. Return the complete campaign dict.
     """
     # ── Step 1: Text generation ──────────────────────────────────────────
-    self.update_state(
-        state="PROGRESS",
-        meta={"step": "Generating campaign copy..."},
-    )
-    campaign_data = generate_campaign_text(user_brief, model_override=model_override)
+    try:
+        update_task_state(task_id, state="PROGRESS", meta={"step": "Generating campaign copy..."})
+        campaign_data = generate_campaign_text(user_brief, model_override=model_override)
 
-    # ── Step 2: Parallel image generation ───────────────────────────────
-    self.update_state(
-        state="PROGRESS",
-        meta={"step": "Generating promotional images..."},
-    )
-    with ThreadPoolExecutor(max_workers=2) as executor:
-        f1 = executor.submit(generate_image, campaign_data["image_prompt_1"])
-        f2 = executor.submit(generate_image, campaign_data["image_prompt_2"])
-        campaign_data["image_url_1"] = f1.result()
-        campaign_data["image_url_2"] = f2.result()
+        # ── Step 2: Parallel image generation ───────────────────────────────
+        update_task_state(task_id, state="PROGRESS", meta={"step": f"Generating promotional images..."})
+        
+        image_prompts = campaign_data.get("image_prompts", [])
+        
+        # Generate images in parallel using the ThreadPoolExecutor
+        with ThreadPoolExecutor(max_workers=3) as executor:
+            image_urls = list(executor.map(generate_image, image_prompts))
+        
+        campaign_data["image_urls"] = image_urls
 
-    # ── Step 3: Finalise ─────────────────────────────────────────────────
-    self.update_state(
-        state="PROGRESS",
-        meta={"step": "Finalizing..."},
-    )
+        # ── Step 3: Finalise ─────────────────────────────────────────────────
+        update_task_state(task_id, state="PROGRESS", meta={"step": "Finalizing..."})
+        update_task_state(task_id, state="SUCCESS", result=campaign_data)
+        return campaign_data
 
-    return campaign_data
+    except Exception as e:
+        print(f"[tasks] Critical error in campaign generation: {e}")
+        update_task_state(task_id, state="FAILURE", meta=str(e))
+        return None

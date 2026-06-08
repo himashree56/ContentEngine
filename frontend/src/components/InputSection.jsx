@@ -1,8 +1,12 @@
 import { useState } from 'react';
 
 const TEXT_MODELS = [
-  { value: 'openai/gpt-4o', label: 'GPT-4o (OpenAI)' },
-  { value: 'anthropic/claude-sonnet-4-5', label: 'Claude Sonnet 4.5 (Anthropic)' },
+  { value: 'openai/gpt-oss-120b:free',          label: '⚡ GPT OSS 120B (Free) — Best' },
+  { value: 'google/gemma-4-26b-a4b-it:free',    label: '⚡ Gemma 4 26B (Free) — Fastest' },
+  { value: 'moonshotai/kimi-k2.6:free',         label: '⚡ Kimi K2.6 (Free)' },
+  { value: 'liquid/lfm-2.5-1.2b-instruct:free', label: '⚡ LFM 1.2B (Free) — Lightweight' },
+  { value: 'qwen2:1.5b',                        label: '🖥 Qwen2 1.5B (Ollama Local)' },
+  { value: 'tinyllama:latest',                  label: '🖥 TinyLlama (Ollama Local)' },
 ];
 
 /**
@@ -10,7 +14,7 @@ const TEXT_MODELS = [
  */
 export default function InputSection({ onSubmit, isProcessing }) {
   const [brief, setBrief] = useState('');
-  const [model, setModel] = useState(TEXT_MODELS[0].value);
+  const [model, setModel] = useState(TEXT_MODELS[0].value); // openai/gpt-oss-120b:free
 
   const handleSubmit = (e) => {
     e.preventDefault();

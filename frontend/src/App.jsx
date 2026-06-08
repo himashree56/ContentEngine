@@ -52,7 +52,6 @@ function App() {
             setErrorMsg(result.error || 'Unknown error');
             setAppState('failed');
           }
-          // pending → keep polling
         } catch (err) {
           console.error('[poll] Error fetching status:', err);
         }
@@ -84,8 +83,8 @@ function App() {
     [clearIntervals, startTimer, startPolling]
   );
 
-  // ── Retry ──
-  const handleRetry = useCallback(() => {
+  // ── Reset ──
+  const handleReset = useCallback(() => {
     clearIntervals();
     setAppState('idle');
     setTaskId(null);
@@ -105,11 +104,13 @@ function App() {
       {/* ── Navbar ── */}
       <nav className="navbar">
         <div className="container navbar-inner">
-          <div className="navbar-logo">
+          <div className="navbar-logo" onClick={handleReset} style={{ cursor: 'pointer' }}>
             <div className="logo-icon">⚡</div>
             <span className="text-gradient">ContentEngine</span>
           </div>
-          <span className="navbar-badge">AI-Powered</span>
+          <div className="navbar-actions">
+            <span className="navbar-badge">AI-Powered</span>
+          </div>
         </div>
       </nav>
 
@@ -128,7 +129,7 @@ function App() {
       {/* ── Error ── */}
       {appState === 'failed' && (
         <div className="container">
-          <ErrorState error={errorMsg} onRetry={handleRetry} />
+          <ErrorState error={errorMsg} onRetry={handleReset} />
         </div>
       )}
 
@@ -139,7 +140,7 @@ function App() {
 
       {/* ── Footer ── */}
       <footer className="footer">
-        <p>ContentEngine · Powered by OpenRouter · Built with ❤️ for GenAI Internship</p>
+        <p>ContentEngine · AI Marketing System · Built for Scale</p>
       </footer>
     </>
   );
