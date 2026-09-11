@@ -161,7 +161,8 @@ export default function ResultsDashboard({ data }) {
     try {
       const content = platform === 'Twitter' ? (tweets[0]?.text || '') : (blog_post.title + '\n\n' + blog_post.body);
 
-      const response = await fetch(`http://localhost:8000/publish?platform=${platform}&content=${encodeURIComponent(content)}`, {
+      const baseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
+      const response = await fetch(`${baseUrl}/publish?platform=${platform}&content=${encodeURIComponent(content)}`, {
         method: 'POST'
       });
 
